@@ -120,7 +120,7 @@ func Parse(raw []byte) (*Config, error) {
 		cfg.Root = "."
 	}
 	if err := cfg.validate(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("config: %w", err)
 	}
 	return &cfg, nil
 }
@@ -151,6 +151,9 @@ func (c *Config) validate() error {
 			}
 		}
 	}
+	// Assert node-set references (In/From/To/Set) are validated by the per-assert packages that
+	// consume them (M2/M3 beads) — mirroring the per-extractor field validation above (KISS); here we
+	// only pin the assert vocabulary itself.
 	for i, a := range c.Assert {
 		if !knownAssertTypes[a.Type] {
 			return fmt.Errorf("assert[%d]: unknown type %q", i, a.Type)

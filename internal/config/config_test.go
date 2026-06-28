@@ -2,6 +2,7 @@ package config
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -51,18 +52,27 @@ func TestRootDefaults(t *testing.T) {
 
 func TestLoadRejectsMalformed(t *testing.T) {
 	cases := []struct {
-		name string
-		file string
+		name      string
+		file      string
+		wantInErr string // substring pinning WHICH rule rejected it (so a fixture can't pass for the wrong reason)
 	}{
-		{"yaml syntax error", "bad_syntax.yml"},
-		{"unknown edge type", "bad_unknown_edge.yml"},
-		{"edge from undefined node-set", "bad_undefined_from.yml"},
-		{"node-set without glob", "bad_no_glob.yml"},
+		{"yaml syntax error", "bad_syntax.yml", "parsing yaml"},
+		{"empty nodes", "bad_empty_nodes.yml", "no node-sets defined"},
+		{"node-set without glob", "bad_no_glob.yml", "no glob"},
+		{"unknown edge type", "bad_unknown_edge.yml", "unknown type"},
+		{"edge missing from", "bad_missing_from.yml", "missing from"},
+		{"edge from undefined node-set", "bad_undefined_from.yml", "not a defined node-set"},
+		{"edge to undefined node-set", "bad_to_undefined.yml", "not a defined node-set"},
+		{"unknown assert type", "bad_unknown_assert.yml", "unknown type"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if _, err := Load(filepath.Join("testdata", tc.file)); err == nil {
+			_, err := Load(filepath.Join("testdata", tc.file))
+			if err == nil {
 				t.Fatalf("Load(%s) = nil error, want a rejection", tc.file)
+			}
+			if !strings.Contains(err.Error(), tc.wantInErr) {
+				t.Errorf("Load(%s) error = %q, want it to contain %q", tc.file, err, tc.wantInErr)
 			}
 		})
 	}

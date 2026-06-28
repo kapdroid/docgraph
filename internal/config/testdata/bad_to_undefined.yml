@@ -1,0 +1,4 @@
+nodes:
+  stacks: { glob: "stacks/*/stack.yml" }
+edges:
+  - { type: yaml-pointer, from: stacks, key: rules, to: ghosts }

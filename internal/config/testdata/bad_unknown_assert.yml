@@ -1,0 +1,4 @@
+nodes:
+  docs: { glob: "**/*.md" }
+assert:
+  - { type: telepathy }

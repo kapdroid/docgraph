@@ -12,6 +12,7 @@ import (
 	"github.com/kapdroid/docgraph/internal/config"
 	"github.com/kapdroid/docgraph/internal/discover"
 	"github.com/kapdroid/docgraph/internal/extract"
+	"github.com/kapdroid/docgraph/internal/reach"
 	"github.com/kapdroid/docgraph/internal/report"
 )
 
@@ -37,6 +38,9 @@ func Run(cfgPath string, w io.Writer) (bool, error) {
 	if err := extract.NewRegistry().Extract(g, cfg.Edges); err != nil {
 		return false, fmt.Errorf("extract: %w", err)
 	}
+	// Inject the consumers×moments layer (M3) so the reachable assertion sees consumers as entry nodes.
+	// No-op when no consumers are configured.
+	reach.Materialize(cfg, g)
 	results, err := assert.NewRegistry().Check(g, cfg.Assert)
 	if err != nil {
 		return false, fmt.Errorf("assert: %w", err)

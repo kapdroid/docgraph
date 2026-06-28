@@ -1,5 +1,6 @@
 nodes:
   rules: { glob: "**/*.md" }
+moments: [lane, edit]
 consumers:
   impl: { reaches: [rules], at: [lane] }
 assert:

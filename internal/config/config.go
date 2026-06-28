@@ -183,6 +183,24 @@ func (c *Config) validate() error {
 			}
 		}
 	}
+	// Consumers (M3): `reaches` must name defined node-sets, `at` must name declared moments — else a
+	// typo silently shrinks the consumer's reach and the reachable assertion passes vacuously.
+	moments := map[string]bool{}
+	for _, m := range c.Moments {
+		moments[m] = true
+	}
+	for name, cons := range c.Consumers {
+		for _, set := range cons.Reaches {
+			if _, ok := c.Nodes[set]; !ok {
+				return fmt.Errorf("consumer %q: reaches %q is not a defined node-set", name, set)
+			}
+		}
+		for _, at := range cons.At {
+			if !moments[at] {
+				return fmt.Errorf("consumer %q: at %q is not a declared moment", name, at)
+			}
+		}
+	}
 	return nil
 }
 

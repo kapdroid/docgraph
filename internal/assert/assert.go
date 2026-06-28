@@ -75,6 +75,8 @@ func NewRegistry() *Registry {
 	r.Register(cites{})
 	r.Register(registered{})
 	r.Register(consistent{})
+	r.Register(reachable{})
+	r.Register(acyclic{})
 	return r
 }
 

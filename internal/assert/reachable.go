@@ -11,8 +11,9 @@ import (
 // reachable is the M3 differentiator: it asserts every node in a target set is reachable from the
 // consumer entry nodes by following edges of ANY type. A rule/doc that exists but no consumer can
 // reach — through links, yaml pointers, citations, anything — is flagged. This is the question generic
-// link-checkers cannot answer. Configured via rule.Set (the target node-set) and rule.From (the
-// literal keyword "consumers"; the .5 seam materializes consumers as graph nodes — kap-ymj.15).
+// link-checkers cannot answer. Configured via rule.Set (the target node-set) and rule.From: the
+// literal keyword "consumers" (default — entries are the materialized consumer nodes, the .5/.15
+// seam), or any node-set name to use that set's members as the entry points.
 type reachable struct{}
 
 // Type returns the assert type this assertion handles.

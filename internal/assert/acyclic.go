@@ -60,7 +60,8 @@ func (acyclic) Check(g *graph.Graph, _ config.Assertion) []Finding {
 }
 
 // cyclePath renders the cycle closing at `to`: the slice of path from where `to` first appears,
-// followed by `to` again to show the closure (e.g. "a → b → a").
+// followed by `to` again to show the closure (e.g. "a → b → a"). `to` is always on `path` here (it is
+// the gray node a back-edge points at), so the start-at-0 default is never actually used.
 func cyclePath(path []string, to string) string {
 	start := 0
 	for i, id := range path {

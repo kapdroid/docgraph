@@ -40,6 +40,7 @@ func NewRegistry() *Registry {
 	r.Register(yamlPointer{})
 	r.Register(regexCite{})
 	r.Register(jsonPath{})
+	r.Register(frontmatterScope{})
 	return r
 }
 

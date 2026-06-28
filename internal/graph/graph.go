@@ -6,6 +6,12 @@ package graph
 
 import "sort"
 
+// DerivedPrefix namespaces a node Frontmatter key holding a value DERIVED by an extractor (not parsed
+// from the file) — e.g. frontmatter-scope stores the location-derived expected value under
+// DerivedPrefix+field, which the consistent assertion compares against the parsed field. Keeping it a
+// reserved prefix lets producer (extract) and consumer (assert) agree without a side channel.
+const DerivedPrefix = "@derived:"
+
 // Node is one vertex: a file artifact (Path set, Abstract false) or an abstract node such as a
 // consumer/role or a lifecycle moment (Abstract true, Path empty).
 type Node struct {

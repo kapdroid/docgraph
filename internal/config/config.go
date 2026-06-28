@@ -56,6 +56,23 @@ type EdgeRule struct {
 	Field string `yaml:"field"`
 	// MustMatchPath enables the location-consistency check for frontmatter-scope.
 	MustMatchPath bool `yaml:"mustMatchPath"`
+	// Derive maps a node's location to its expected Field value (frontmatter-scope). The expected
+	// value convention is repo-specific, so it is configured here, not hardcoded (portability).
+	Derive []DeriveRule `yaml:"derive"`
+}
+
+// DeriveRule maps a path prefix to an expected value, for frontmatter-scope. Under is a "/"-segmented
+// path prefix where a "*" segment is a wildcard capture; Expect is a template where {1}, {2}, … are
+// substituted with the captured segments. First matching rule wins. Example:
+//
+//	{ under: "stacks/*/decisions", expect: "stack:{1}" }
+//
+// derives "stack:go" for stacks/go/decisions/adr-0015-x.md.
+type DeriveRule struct {
+	// Under is the "/"-segmented path prefix to match, with "*" capturing one segment.
+	Under string `yaml:"under"`
+	// Expect is the expected value template; {n} is replaced by the n-th captured "*" segment.
+	Expect string `yaml:"expect"`
 }
 
 // Consumer is a reader of the graph: the node-sets it must reach, at which moments (M3 reachable).

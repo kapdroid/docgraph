@@ -20,26 +20,42 @@ func AllPassed(results []assert.Result) bool {
 	return true
 }
 
+// errWriter records the first write error so a sequence of formatted writes can be checked once at
+// the end instead of after every call (keeping the report body readable).
+type errWriter struct {
+	w   io.Writer
+	err error
+}
+
+func (e *errWriter) printf(format string, a ...any) {
+	if e.err != nil {
+		return
+	}
+	_, e.err = fmt.Fprintf(e.w, format, a...)
+}
+
 // Text writes a human-readable pass/fail report: one line per check, then the findings of any failed
-// check, and a final summary line. It returns the number of findings written.
-func Text(w io.Writer, results []assert.Result) int {
+// check, and a final summary line. It returns the number of findings written and the first write
+// error encountered (nil on success).
+func Text(w io.Writer, results []assert.Result) (int, error) {
+	ew := &errWriter{w: w}
 	total := 0
 	for _, r := range results {
 		if r.Passed() {
-			fmt.Fprintf(w, "PASS  %s\n", r.Type)
+			ew.printf("PASS  %s\n", r.Type)
 			continue
 		}
-		fmt.Fprintf(w, "FAIL  %s (%d)\n", r.Type, len(r.Findings))
+		ew.printf("FAIL  %s (%d)\n", r.Type, len(r.Findings))
 		for _, f := range r.Findings {
 			total++
-			fmt.Fprintf(w, "        - %s\n", f.Message)
+			ew.printf("        - %s\n", f.Message)
 		}
 	}
 	checks := len(results)
 	if AllPassed(results) {
-		fmt.Fprintf(w, "\nok — %d check(s) passed\n", checks)
+		ew.printf("\nok — %d check(s) passed\n", checks)
 	} else {
-		fmt.Fprintf(w, "\nFAILED — %d finding(s) across %d check(s)\n", total, checks)
+		ew.printf("\nFAILED — %d finding(s) across %d check(s)\n", total, checks)
 	}
-	return total
+	return total, ew.err
 }

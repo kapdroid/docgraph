@@ -35,7 +35,10 @@ func TestTextReport(t *testing.T) {
 		{Type: "no-orphan"},
 	}
 	var b strings.Builder
-	n := Text(&b, results)
+	n, err := Text(&b, results)
+	if err != nil {
+		t.Fatalf("Text returned error: %v", err)
+	}
 	s := b.String()
 	if n != 1 {
 		t.Errorf("findings written = %d, want 1", n)
@@ -49,7 +52,9 @@ func TestTextReport(t *testing.T) {
 
 func TestTextReportClean(t *testing.T) {
 	var b strings.Builder
-	Text(&b, []assert.Result{{Type: "no-dangling"}, {Type: "no-orphan"}})
+	if _, err := Text(&b, []assert.Result{{Type: "no-dangling"}, {Type: "no-orphan"}}); err != nil {
+		t.Fatalf("Text returned error: %v", err)
+	}
 	if !strings.Contains(b.String(), "ok — 2 check(s) passed") {
 		t.Errorf("clean report missing ok summary:\n%s", b.String())
 	}

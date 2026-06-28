@@ -38,6 +38,8 @@ func Run(cfgPath string, w io.Writer) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	report.Text(w, results)
+	if _, err := report.Text(w, results); err != nil {
+		return false, err
+	}
 	return report.AllPassed(results), nil
 }

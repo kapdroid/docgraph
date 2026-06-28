@@ -19,12 +19,13 @@ var mdLinkRe = regexp.MustCompile(`\[[^\]]*\]\(([^)]+)\)`)
 // and pure in-document anchors (#section) are skipped — only references that target another file in
 // the graph become edges.
 //
-// Scope (M1 link layer): this is a deliberately simple inline-link regex, not a full Markdown parse.
-// Image embeds ![alt](path) are treated as links (the [alt](path) substring matches) — intentional,
-// since an image is also a file reference docgraph should reach. Known limits, acceptable for the
-// link layer: links inside fenced/inline code blocks still match, reference-style [text][ref] links
-// are not followed, and a nested-bracket label truncates at the first ']'. Upgrade to a real parser
-// (goldmark) only if fidelity demands it (a later bead, not M1).
+// Scope: this is a deliberately simple inline-link regex, not a full Markdown parse. Image embeds
+// ![alt](path) are treated as links (the [alt](path) substring matches) — intentional, since an image
+// is also a file reference docgraph should reach. Fenced code blocks (``` / ~~~) ARE skipped so the
+// examples in documentation don't register as broken references (this fix was surfaced by dogfooding
+// docgraph on its own docs, kap-ymj.18). Remaining limits, acceptable for the link layer: inline-code
+// `[x](y)` still matches, reference-style [text][ref] links are not followed, and a nested-bracket
+// label truncates at the first ']'. Upgrade to a real parser (goldmark) only if fidelity demands it.
 type markdownLink struct{}
 
 // Type returns the edge type this extractor handles.
@@ -42,9 +43,18 @@ func (markdownLink) Extract(n *graph.Node, _ config.EdgeRule) ([]graph.Edge, err
 	var edges []graph.Edge
 	sc := bufio.NewScanner(f)
 	line := 0
+	inFence := false
 	for sc.Scan() {
 		line++
-		for _, m := range mdLinkRe.FindAllStringSubmatch(sc.Text(), -1) {
+		text := sc.Text()
+		if isFence(text) { // ``` or ~~~ — toggle fenced-code state and skip the fence line itself
+			inFence = !inFence
+			continue
+		}
+		if inFence {
+			continue // links inside a code block are examples, not real references
+		}
+		for _, m := range mdLinkRe.FindAllStringSubmatch(text, -1) {
 			target, ok := linkTarget(m[1])
 			if !ok {
 				continue
@@ -61,6 +71,13 @@ func (markdownLink) Extract(n *graph.Node, _ config.EdgeRule) ([]graph.Edge, err
 		return nil, fmt.Errorf("scanning %s: %w", n.Path, err)
 	}
 	return edges, nil
+}
+
+// isFence reports whether a line opens or closes a fenced code block (``` or ~~~, optionally indented
+// and with an info string). Links inside such a block are documentation examples, not references.
+func isFence(line string) bool {
+	t := strings.TrimLeft(line, " \t")
+	return strings.HasPrefix(t, "```") || strings.HasPrefix(t, "~~~")
 }
 
 // linkTarget cleans a raw link target to the bare file path and reports whether it is an intra-repo

@@ -113,3 +113,20 @@ func TestExtractOwnFileReadFails(t *testing.T) {
 		t.Fatal("Extract over a node with a missing file = nil error, want failure")
 	}
 }
+
+func TestMarkdownLinkSkipsFencedCode(t *testing.T) {
+	g := graph.New()
+	g.AddNode(graph.Node{ID: "docs/fenced.md", Kind: "docs", Path: "testdata/docs/fenced.md"})
+	r := NewRegistry()
+	if err := r.Extract(g, []config.EdgeRule{{Type: "markdown-link", From: "docs"}}); err != nil {
+		t.Fatalf("Extract: %v", err)
+	}
+	for _, e := range g.Outbound("docs/fenced.md") {
+		if e.To == "docs/should-not-resolve.md" {
+			t.Errorf("link inside a fenced code block was extracted: %+v", e)
+		}
+	}
+	if n := len(g.Outbound("docs/fenced.md")); n != 2 { // [b] and [c], not the fenced one
+		t.Errorf("got %d edges, want 2 (fenced example excluded)", n)
+	}
+}

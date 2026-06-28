@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/bmatcuk/doublestar/v4"
@@ -25,7 +26,13 @@ import (
 func Discover(cfg *config.Config) (*graph.Graph, error) {
 	g := graph.New()
 	fsys := os.DirFS(cfg.Root)
-	for name, ns := range cfg.Nodes {
+	names := make([]string, 0, len(cfg.Nodes))
+	for name := range cfg.Nodes {
+		names = append(names, name)
+	}
+	sort.Strings(names) // deterministic processing order (matters when sets overlap and merge)
+	for _, name := range names {
+		ns := cfg.Nodes[name]
 		matches, err := doublestar.Glob(fsys, ns.Glob, doublestar.WithFilesOnly())
 		if err != nil {
 			return nil, fmt.Errorf("discover: node-set %q glob %q: %w", name, ns.Glob, err)

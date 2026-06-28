@@ -31,13 +31,14 @@ func (cites) Check(g *graph.Graph, rule config.Assertion) []Finding {
 	return findings
 }
 
-// edgesIntoKind reports whether any outbound edge of fromID targets an EXISTING node of the given
-// kind. A citation to a missing file does not count (g.Node must resolve) — so a node whose only
-// citation dangles is reported by both no-dangling (the dead link) and cites (no live citation),
-// which is intentional: the two findings describe different problems.
+// edgesIntoKind reports whether any outbound edge of fromID targets an EXISTING node that belongs to
+// the given kind (by membership — a target may be in several overlapping sets). A citation to a
+// missing file does not count (the node must exist) — so a node whose only citation dangles is
+// reported by both no-dangling (the dead link) and cites (no live citation), which is intentional:
+// the two findings describe different problems.
 func edgesIntoKind(g *graph.Graph, fromID, kind string) bool {
 	for _, e := range g.Outbound(fromID) {
-		if t, ok := g.Node(e.To); ok && t.Kind == kind {
+		if g.Has(e.To) && g.IsKind(e.To, kind) {
 			return true
 		}
 	}

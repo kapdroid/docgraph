@@ -17,7 +17,9 @@ const DerivedPrefix = "@derived:"
 type Node struct {
 	// ID is the unique identity used by edges; for file nodes it is the cleaned relative path.
 	ID string
-	// Kind is the node-set the node belongs to (e.g. "docs", "adrs") or an abstract kind ("consumer").
+	// Kind is the node's PRIMARY node-set, for display in reports. A file may belong to several
+	// overlapping sets (e.g. both "docs" and "adrs"); membership is queried with Graph.IsKind /
+	// NodesOfKind, while Kind is just the lexicographically-first set, kept stable for messages.
 	Kind string
 	// Path is the file path for a file node; empty for an abstract node.
 	Path string
@@ -41,12 +43,14 @@ type Edge struct {
 }
 
 // Graph holds nodes keyed by ID and the edges between them, with both adjacency directions
-// precomputed for O(1) neighbor lookup.
+// precomputed for O(1) neighbor lookup. kinds indexes set-membership (kind → node IDs) so a node can
+// belong to several overlapping node-sets.
 type Graph struct {
 	nodes map[string]*Node
 	edges []Edge
 	out   map[string][]Edge
 	in    map[string][]Edge
+	kinds map[string]map[string]bool
 }
 
 // New returns an empty graph ready for AddNode/AddEdge.
@@ -55,14 +59,40 @@ func New() *Graph {
 		nodes: map[string]*Node{},
 		out:   map[string][]Edge{},
 		in:    map[string][]Edge{},
+		kinds: map[string]map[string]bool{},
 	}
 }
 
-// AddNode inserts or replaces the node with n.ID. Re-adding an existing ID overwrites it (discovery
-// is the single writer of nodes, so last-write-wins is intentional and keeps callers simple).
+// AddNode inserts the node, or MERGES into an existing one with the same ID — so a file matched by
+// several overlapping node-sets joins all of them instead of clobbering. On merge it unions kind
+// membership, merges parsed frontmatter, fills an empty Path, and keeps the lexicographically-first
+// Kind as the stable primary (deterministic regardless of add order). discovery is the writer.
 func (g *Graph) AddNode(n Node) {
-	node := n
-	g.nodes[n.ID] = &node
+	node, ok := g.nodes[n.ID]
+	if !ok {
+		cp := n
+		g.nodes[n.ID] = &cp
+		node = &cp
+	} else {
+		if n.Kind != "" && (node.Kind == "" || n.Kind < node.Kind) {
+			node.Kind = n.Kind // keep the lexicographically-first set as the display primary
+		}
+		if node.Path == "" {
+			node.Path = n.Path
+		}
+		for k, v := range n.Frontmatter {
+			if node.Frontmatter == nil {
+				node.Frontmatter = map[string]string{}
+			}
+			node.Frontmatter[k] = v
+		}
+	}
+	if n.Kind != "" {
+		if g.kinds[n.Kind] == nil {
+			g.kinds[n.Kind] = map[string]bool{}
+		}
+		g.kinds[n.Kind][n.ID] = true
+	}
 }
 
 // AddEdge records a directed edge and updates both adjacency indexes. The To node need not exist yet.
@@ -111,11 +141,21 @@ func (g *Graph) Inbound(id string) []Edge {
 	return g.in[id]
 }
 
-// NodesOfKind returns the nodes whose Kind matches, sorted by ID.
+// IsKind reports whether the node with the given ID belongs to the node-set kind (by membership, not
+// just its primary Kind) — the correct test when a file may be in several overlapping sets.
+func (g *Graph) IsKind(id, kind string) bool {
+	return g.kinds[kind][id]
+}
+
+// NodesOfKind returns every node belonging to the node-set kind (by membership), sorted by ID.
 func (g *Graph) NodesOfKind(kind string) []*Node {
+	ids := g.kinds[kind]
+	if len(ids) == 0 {
+		return nil
+	}
 	var out []*Node
 	for _, n := range g.Nodes() {
-		if n.Kind == kind {
+		if ids[n.ID] {
 			out = append(out, n)
 		}
 	}

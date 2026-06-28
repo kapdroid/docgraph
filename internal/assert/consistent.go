@@ -21,10 +21,9 @@ func (consistent) Type() string { return "consistent" }
 
 // Check flags each derived field whose parsed value differs from the location-derived expectation.
 func (consistent) Check(g *graph.Graph, rule config.Assertion) []Finding {
-	inScope := kindSet(rule.In)
 	var findings []Finding
 	for _, n := range g.Nodes() {
-		if len(inScope) > 0 && !inScope[n.Kind] {
+		if len(rule.In) > 0 && !inAnyScope(g, n.ID, rule.In) {
 			continue
 		}
 		for _, field := range derivedFields(n) {

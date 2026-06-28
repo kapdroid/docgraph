@@ -32,6 +32,13 @@ func Discover(cfg *config.Config) (*graph.Graph, error) {
 		}
 		for _, rel := range matches {
 			rel = filepath.ToSlash(rel)
+			excluded, err := matchesAny(rel, ns.Exclude)
+			if err != nil {
+				return nil, fmt.Errorf("discover: node-set %q exclude: %w", name, err)
+			}
+			if excluded {
+				continue
+			}
 			node := graph.Node{ID: rel, Kind: name, Path: filepath.Join(cfg.Root, rel)}
 			if len(ns.Frontmatter) > 0 {
 				fm, err := frontmatter(fsys, rel, ns.Frontmatter)
@@ -44,6 +51,21 @@ func Discover(cfg *config.Config) (*graph.Graph, error) {
 		}
 	}
 	return g, nil
+}
+
+// matchesAny reports whether rel matches any of the doublestar exclude patterns. A malformed pattern
+// is returned as an error (it is a config mistake, not a silently-ignored miss).
+func matchesAny(rel string, patterns []string) (bool, error) {
+	for _, p := range patterns {
+		ok, err := doublestar.Match(p, rel)
+		if err != nil {
+			return false, fmt.Errorf("bad exclude pattern %q: %w", p, err)
+		}
+		if ok {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // fenceDelim is the line that opens and closes a YAML frontmatter block at the top of a file.

@@ -113,3 +113,52 @@ func TestDiscoverTolerantFrontmatter(t *testing.T) {
 		t.Errorf("requested fields = %v, want id=ADR-0099 scope=engine", n.Frontmatter)
 	}
 }
+
+func TestDiscoverExclude(t *testing.T) {
+	cfg := &config.Config{
+		Root: "testdata/proj",
+		Nodes: map[string]config.NodeSet{
+			"all": {Glob: "**/*.md", Exclude: []string{"decisions/**"}},
+		},
+	}
+	g, err := Discover(cfg)
+	if err != nil {
+		t.Fatalf("Discover: %v", err)
+	}
+	if _, ok := g.Node("docs/a.md"); !ok {
+		t.Error("docs/a.md should be discovered")
+	}
+	if _, ok := g.Node("decisions/adr-0001-foo.md"); ok {
+		t.Error("decisions/adr-0001-foo.md should be EXCLUDed")
+	}
+}
+
+func TestDiscoverExcludeMultiPattern(t *testing.T) {
+	// the exclude match is the SECOND pattern — exercises matchesAny's later-iteration path.
+	cfg := &config.Config{
+		Root: "testdata/proj",
+		Nodes: map[string]config.NodeSet{
+			"all": {Glob: "**/*.md", Exclude: []string{"no/such/**", "decisions/**"}},
+		},
+	}
+	g, err := Discover(cfg)
+	if err != nil {
+		t.Fatalf("Discover: %v", err)
+	}
+	if _, ok := g.Node("decisions/adr-0001-foo.md"); ok {
+		t.Error("decisions/adr-0001-foo.md should be excluded by the second pattern")
+	}
+	if _, ok := g.Node("docs/a.md"); !ok {
+		t.Error("docs/a.md should still be discovered")
+	}
+}
+
+func TestDiscoverBadExcludePattern(t *testing.T) {
+	cfg := &config.Config{
+		Root:  "testdata/proj",
+		Nodes: map[string]config.NodeSet{"all": {Glob: "**/*.md", Exclude: []string{"[bad"}}},
+	}
+	if _, err := Discover(cfg); err == nil {
+		t.Fatal("Discover with a malformed exclude pattern = nil error, want failure")
+	}
+}

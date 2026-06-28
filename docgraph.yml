@@ -4,7 +4,8 @@
 root: .
 nodes:
   docs:
-    glob: "{README.md,docs/**/*.md,test/**/*.md}"
+    glob: "**/*.md"
+    exclude: ["**/testdata/**"]   # fixtures hold deliberately-broken graphs — not our own docs
 edges:
   - { type: markdown-link, from: docs }
 assert:

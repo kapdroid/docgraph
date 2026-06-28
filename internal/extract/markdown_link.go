@@ -23,9 +23,10 @@ var mdLinkRe = regexp.MustCompile(`\[[^\]]*\]\(([^)]+)\)`)
 // ![alt](path) are treated as links (the [alt](path) substring matches) — intentional, since an image
 // is also a file reference docgraph should reach. Fenced code blocks (``` / ~~~) ARE skipped so the
 // examples in documentation don't register as broken references (this fix was surfaced by dogfooding
-// docgraph on its own docs, kap-ymj.18). Remaining limits, acceptable for the link layer: inline-code
-// `[x](y)` still matches, reference-style [text][ref] links are not followed, and a nested-bracket
-// label truncates at the first ']'. Upgrade to a real parser (goldmark) only if fidelity demands it.
+// docgraph on its own docs, kap-ymj.18). Single-backtick inline-code spans are also skipped
+// (kap-us5). Remaining limits, acceptable for the link layer: doubled-backtick code spans still match,
+// reference-style [text][ref] links are not followed, and a nested-bracket label truncates at the
+// first ']'. Upgrade to a real parser (goldmark) only if fidelity demands it.
 type markdownLink struct{}
 
 // Type returns the edge type this extractor handles.
@@ -54,6 +55,7 @@ func (markdownLink) Extract(n *graph.Node, _ config.EdgeRule) ([]graph.Edge, err
 		if inFence {
 			continue // links inside a code block are examples, not real references
 		}
+		text = stripInlineCode(text) // a `[x](y)` shown in inline code is an example, not a reference
 		for _, m := range mdLinkRe.FindAllStringSubmatch(text, -1) {
 			target, ok := linkTarget(m[1])
 			if !ok {
@@ -78,6 +80,21 @@ func (markdownLink) Extract(n *graph.Node, _ config.EdgeRule) ([]graph.Edge, err
 func isFence(line string) bool {
 	t := strings.TrimLeft(line, " \t")
 	return strings.HasPrefix(t, "```") || strings.HasPrefix(t, "~~~")
+}
+
+// inlineCodeRe matches a single-backtick inline-code span (the common case). Doubled-backtick spans
+// (“ `code` “) are rarer and intentionally not handled — documented limitation.
+var inlineCodeRe = regexp.MustCompile("`[^`]*`")
+
+// stripInlineCode blanks out inline-code spans so a `[x](y)` shown as code (e.g. in a docs table or
+// prose example) is not extracted as a real link. An unbalanced trailing backtick leaves its text
+// intact (no closing delimiter to match).
+func stripInlineCode(line string) string {
+	return inlineCodeRe.ReplaceAllStringFunc(line, func(s string) string {
+		// equal-length blanks (not removal) keep surrounding bracket/paren columns, so a real link
+		// whose label itself contains inline code — [`code`](real.md) — still matches mdLinkRe.
+		return strings.Repeat(" ", len(s))
+	})
 }
 
 // linkTarget cleans a raw link target to the bare file path and reports whether it is an intra-repo

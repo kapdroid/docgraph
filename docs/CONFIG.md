@@ -7,7 +7,7 @@ relative to the config file's location). See the [README](../README.md) for usag
 root: .                              # base dir for globs (default ".")
 
 nodes:                               # named node-sets, discovered by glob
-  docs:  { glob: "**/*.md" }
+  docs:  { glob: "**/*.md", exclude: ["**/testdata/**"] }  # exclude: doublestar patterns to drop
   adrs:  { glob: "**/decisions/adr-*.md", frontmatter: [id, scope, status] }
   stacks: { glob: "stacks/*/stack.yml" }
 

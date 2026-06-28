@@ -93,3 +93,23 @@ func TestEmptyGlobIsNotError(t *testing.T) {
 		t.Errorf("expected 0 nodes, got %d", len(g.Nodes()))
 	}
 }
+
+func TestDiscoverTolerantFrontmatter(t *testing.T) {
+	// a frontmatter whose NON-requested fields are YAML-invalid (regression_signal: >.* , coverage[..])
+	// must not break extraction of the requested fields (the kapdroid-dogfood case, kap-ymj.21).
+	cfg := &config.Config{
+		Root:  "testdata/quirk",
+		Nodes: map[string]config.NodeSet{"adrs": {Glob: "adr-*.md", Frontmatter: []string{"id", "scope"}}},
+	}
+	g, err := Discover(cfg)
+	if err != nil {
+		t.Fatalf("Discover errored on quirky frontmatter: %v", err)
+	}
+	n, ok := g.Node("adr-bad.md")
+	if !ok {
+		t.Fatal("adr-bad.md not discovered")
+	}
+	if n.Frontmatter["id"] != "ADR-0099" || n.Frontmatter["scope"] != "engine" {
+		t.Errorf("requested fields = %v, want id=ADR-0099 scope=engine", n.Frontmatter)
+	}
+}

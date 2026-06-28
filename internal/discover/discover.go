@@ -63,16 +63,48 @@ func frontmatter(fsys fs.FS, rel string, fields []string) (map[string]string, er
 	if !ok {
 		return out, nil
 	}
+	// Prefer a full YAML parse (it flattens list values correctly). But real-world frontmatter often
+	// carries a non-requested field whose value is YAML-invalid when parsed strictly — e.g. an ADR's
+	// `regression_signal: >.*` or `coverage[-_]diff`. A linter only needs the REQUESTED fields, so on a
+	// parse failure fall back to a tolerant top-level scalar scan (like verify-context's adr_field)
+	// rather than aborting the whole run on another field's quirk.
 	var all map[string]any
-	if err := yaml.Unmarshal(block, &all); err != nil {
-		return nil, fmt.Errorf("parsing frontmatter: %w", err)
-	}
-	for _, f := range fields {
-		if v, present := all[f]; present {
-			out[f] = scalarString(v)
+	if err := yaml.Unmarshal(block, &all); err == nil {
+		for _, f := range fields {
+			if v, present := all[f]; present {
+				out[f] = scalarString(v)
+			}
 		}
+		return out, nil
 	}
+	scanFrontmatterFields(block, fields, out)
 	return out, nil
+}
+
+// scanFrontmatterFields extracts the requested top-level fields from a frontmatter block by a tolerant
+// line scan: for `field: value`, it takes value with surrounding quotes stripped and an inline flow
+// list ([a, b]) flattened to "a, b". It ignores indented (nested) lines and any field not requested,
+// so a YAML-invalid value on an unrequested field cannot derail extraction of the ones that matter.
+func scanFrontmatterFields(block []byte, fields []string, out map[string]string) {
+	want := make(map[string]bool, len(fields))
+	for _, f := range fields {
+		want[f] = true
+	}
+	for _, raw := range bytes.Split(block, []byte("\n")) {
+		line := string(raw)
+		if len(line) == 0 || line[0] == ' ' || line[0] == '\t' || line[0] == '#' {
+			continue // blank, nested, or comment line — only top-level keys carry frontmatter fields
+		}
+		key, val, found := strings.Cut(line, ":")
+		if !found || !want[key] {
+			continue
+		}
+		val = strings.TrimSpace(val)
+		if strings.HasPrefix(val, "[") && strings.HasSuffix(val, "]") {
+			val = strings.TrimSpace(val[1 : len(val)-1]) // inline flow list → its comma-joined items
+		}
+		out[key] = strings.Trim(val, `"'`)
+	}
 }
 
 // frontmatterBlock returns the bytes between the opening and closing "---" fences and whether a

@@ -1,0 +1,9 @@
+# A broken doc graph: one dead link and one unreachable doc.
+root: .
+nodes:
+  docs: { glob: "docs/*.md" }
+edges:
+  - { type: markdown-link, from: docs }
+assert:
+  - { type: no-dangling }
+  - { type: no-orphan, in: [docs] }

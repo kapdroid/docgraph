@@ -1,0 +1,9 @@
+# A healthy doc graph: every doc is reachable and every link resolves.
+root: .
+nodes:
+  docs: { glob: "docs/*.md" }
+edges:
+  - { type: markdown-link, from: docs }
+assert:
+  - { type: no-dangling }
+  - { type: no-orphan, in: [docs] }

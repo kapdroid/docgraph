@@ -38,6 +38,7 @@ func NewRegistry() *Registry {
 	r := &Registry{byType: map[string]Extractor{}}
 	r.Register(markdownLink{})
 	r.Register(yamlPointer{})
+	r.Register(regexCite{})
 	return r
 }
 

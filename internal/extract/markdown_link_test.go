@@ -130,3 +130,35 @@ func TestMarkdownLinkSkipsFencedCode(t *testing.T) {
 		t.Errorf("got %d edges, want 2 (fenced example excluded)", n)
 	}
 }
+
+func TestMarkdownLinkSkipsInlineCode(t *testing.T) {
+	g := graph.New()
+	g.AddNode(graph.Node{ID: "docs/inline.md", Kind: "docs", Path: "testdata/docs/inline.md"})
+	r := NewRegistry()
+	if err := r.Extract(g, []config.EdgeRule{{Type: "markdown-link", From: "docs"}}); err != nil {
+		t.Fatalf("Extract: %v", err)
+	}
+	for _, e := range g.Outbound("docs/inline.md") {
+		if e.To == "docs/path.md" {
+			t.Errorf("link inside inline-code was extracted: %+v", e)
+		}
+	}
+	if n := len(g.Outbound("docs/inline.md")); n != 1 { // only [b](b.md)
+		t.Errorf("got %d edges, want 1 (inline-code example excluded)", n)
+	}
+}
+
+func TestStripInlineCode(t *testing.T) {
+	cases := []struct{ name, in, want string }{
+		{"span removed", "see `[x](y)` here", "see          here"},
+		{"no code untouched", "plain [a](b)", "plain [a](b)"},
+		{"unbalanced backtick kept", "trailing `oops", "trailing `oops"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := stripInlineCode(tc.in); got != tc.want {
+				t.Errorf("stripInlineCode(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
+	}
+}

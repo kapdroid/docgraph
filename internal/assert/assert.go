@@ -72,6 +72,9 @@ func NewRegistry() *Registry {
 	r := &Registry{byType: map[string]Assertion{}}
 	r.Register(noDangling{})
 	r.Register(noOrphan{})
+	r.Register(cites{})
+	r.Register(registered{})
+	r.Register(consistent{})
 	return r
 }
 

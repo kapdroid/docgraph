@@ -63,6 +63,33 @@ func TestFrontmatterScopeAnnotates(t *testing.T) {
 	}
 }
 
+func TestFrontmatterScopeNoOpPaths(t *testing.T) {
+	derive := []config.DeriveRule{{Under: "docs/decisions", Expect: "engine"}}
+	cases := []struct {
+		name          string
+		id            string
+		mustMatchPath bool
+	}{
+		{"mustMatchPath false skips", "docs/decisions/adr-1.md", false},
+		{"node matching no rule is unannotated", "elsewhere/adr-1.md", true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := graph.New()
+			g.AddNode(graph.Node{ID: tc.id, Kind: "adrs", Frontmatter: map[string]string{"scope": "x"}})
+			r := NewRegistry()
+			rule := config.EdgeRule{Type: "frontmatter-scope", From: "adrs", Field: "scope", MustMatchPath: tc.mustMatchPath, Derive: derive}
+			if err := r.Extract(g, []config.EdgeRule{rule}); err != nil {
+				t.Fatalf("Extract: %v", err)
+			}
+			n, _ := g.Node(tc.id)
+			if _, annotated := n.Frontmatter[graph.DerivedPrefix+"scope"]; annotated {
+				t.Errorf("node was annotated, want unannotated for %q", tc.name)
+			}
+		})
+	}
+}
+
 func TestFrontmatterScopeRequiresField(t *testing.T) {
 	g := graph.New()
 	g.AddNode(graph.Node{ID: "a.md", Kind: "adrs"})

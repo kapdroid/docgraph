@@ -18,11 +18,18 @@ import (
 type Extractor interface {
 	// Type is the docgraph.yml edge `type` this extractor handles.
 	Type() string
-	// Extract emits the edges for one node under rule. The node carries everything needed: n.Path
+	// Extract produces graph facts for one node under rule. The node carries everything needed: n.Path
 	// (root-inclusive, for reading the file) and n.ID (root-relative, the resolution base) — so no
 	// separate root is threaded through. A read/parse failure on the node's own file is returned; an
 	// unresolved reference is NOT an error — it becomes an edge to a missing node (reported by
 	// no-dangling, not here).
+	//
+	// Most extractors return reference EDGES. An extractor whose fact is a property of the node itself
+	// rather than a link (frontmatter-scope's location-derived expectation) MAY instead annotate the
+	// node — the *graph.Node is a legitimate write channel — and return no edges; the consuming
+	// assertion reads the annotation (by convention, under graph.DerivedPrefix). This is part of the
+	// contract, not an incidental side effect (decided kap-ymj.13; the .5 assert seam keeps Check to
+	// (g, rule), so the deriving party must be the extractor that holds the derive config).
 	Extract(n *graph.Node, rule config.EdgeRule) ([]graph.Edge, error)
 }
 

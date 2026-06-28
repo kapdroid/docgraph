@@ -47,7 +47,7 @@ func deriveExpected(id string, rules []config.DeriveRule) (string, bool) {
 	segs := strings.Split(id, "/")
 	for _, r := range rules {
 		under := strings.Split(strings.Trim(r.Under, "/"), "/")
-		if len(under) == 0 || len(under) > len(segs) {
+		if len(under) > len(segs) {
 			continue
 		}
 		caps := make([]string, 0, len(under))

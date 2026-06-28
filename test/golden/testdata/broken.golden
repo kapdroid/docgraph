@@ -1,0 +1,6 @@
+FAIL  no-dangling (1)
+        - docs/index.md references "docs/ghost.md" which does not exist (at docs/index.md:2)
+FAIL  no-orphan (1)
+        - docs/orphan.md (docs) is an orphan — nothing references it
+
+FAILED — 2 finding(s) across 2 check(s)

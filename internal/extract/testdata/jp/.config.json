@@ -1,0 +1,9 @@
+{
+  "docs": ["docs/a.md", "docs/b.md"],
+  "hooks": {
+    "PreToolUse": [
+      { "command": "scripts/guard.sh" },
+      { "command": "scripts/beat.sh" }
+    ]
+  }
+}

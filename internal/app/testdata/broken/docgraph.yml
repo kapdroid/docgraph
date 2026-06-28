@@ -1,0 +1,8 @@
+root: .
+nodes:
+  docs: { glob: "docs/*.md" }
+edges:
+  - { type: markdown-link, from: docs }
+assert:
+  - { type: no-dangling }
+  - { type: no-orphan, in: [docs] }

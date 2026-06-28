@@ -1,0 +1,16 @@
+root: .
+nodes:
+  docs:  { glob: "**/*.md" }
+  adrs:  { glob: "**/decisions/adr-*.md", frontmatter: [id, scope, status] }
+  stacks: { glob: "stacks/*/stack.yml" }
+edges:
+  - { type: markdown-link, from: docs }
+  - { type: yaml-pointer, from: stacks, key: rules, to: docs }
+  - { type: frontmatter-scope, from: adrs, field: scope, mustMatchPath: true }
+moments: [session, lane, edit, review]
+consumers:
+  implementer: { reaches: [stacks], at: [lane, edit] }
+assert:
+  - { type: no-dangling }
+  - { type: no-orphan, in: [docs, adrs] }
+  - { type: reachable, set: stacks, from: consumers }

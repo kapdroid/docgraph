@@ -1,0 +1,26 @@
+# stacks/go/.golangci.yml — the Go deterministic spine (golangci-lint v2).
+# Canonical for every Go tenant; copied to the repo root as .golangci.yml at scaffold time (the
+# location golangci-lint auto-discovers and that a standalone `golangci-lint run` honors).
+# Enforces stacks/go/rules.md §A3. Portable (ADR-0006): zero tenant-specific config here.
+version: "2"
+
+linters:
+  # `standard` = errcheck, govet, ineffassign, staticcheck, unused (the golangci-lint default set).
+  default: standard
+  enable:
+    - revive       # exported-symbol docs, naming, early-return (rules.md §B10)
+    - misspell     # typos in comments/strings
+    - errorlint    # %w wrapping + errors.Is/As instead of == (rules.md §B3)
+    - unconvert    # redundant type conversions (KISS)
+  settings:
+    revive:
+      rules:
+        - name: exported
+        - name: error-strings
+        - name: error-return
+        - name: context-as-argument
+
+issues:
+  # report everything — a gate must not silently cap findings (evidence over assertion).
+  max-issues-per-linter: 0
+  max-same-issues: 0

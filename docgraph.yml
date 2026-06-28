@@ -1,0 +1,14 @@
+# docgraph linting its own docs (self-dogfood). Runs in CI / locally: `docgraph -config docgraph.yml`.
+# Scope is the real documentation only — the internal/**/testdata fixtures contain DELIBERATELY broken
+# graphs (a fixture's job) and must not be linted here.
+root: .
+nodes:
+  docs:
+    glob: "{README.md,docs/**/*.md,test/**/*.md}"
+edges:
+  - { type: markdown-link, from: docs }
+assert:
+  # every intra-repo doc link resolves. (no-orphan is intentionally omitted: standalone READMEs are
+  # legitimate entry points with no inbound link — that is the M3 reachable/consumers concern, not a
+  # flat orphan check, and this repo has no consumer model of its own docs yet.)
+  - { type: no-dangling }

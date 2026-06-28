@@ -1,0 +1,4 @@
+nodes:
+  docs: { glob: "**/*.md" }
+edges:
+  - { type: telepathy-link, from: docs }

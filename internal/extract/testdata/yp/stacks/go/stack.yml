@@ -1,0 +1,4 @@
+gate: go test ./...
+rules: docs/rules.md
+overrides:
+  notes: docs/notes.md

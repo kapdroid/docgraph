@@ -37,6 +37,7 @@ type Registry struct {
 func NewRegistry() *Registry {
 	r := &Registry{byType: map[string]Extractor{}}
 	r.Register(markdownLink{})
+	r.Register(yamlPointer{})
 	return r
 }
 

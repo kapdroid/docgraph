@@ -17,6 +17,13 @@ func resolveRef(fromID, target string) string {
 	return path.Clean(path.Join(path.Dir(fromID), target))
 }
 
+// rootRef cleans a reference that is already repo-root-relative. yaml-pointer / regex-cite / json-path
+// values cite repo paths from the root (e.g. a stack.yml `rules: stacks/go/rules.md`), unlike a
+// file-relative Markdown link — so they resolve straight to a node ID without joining the referrer dir.
+func rootRef(target string) string {
+	return path.Clean(strings.TrimPrefix(strings.TrimSpace(target), "/"))
+}
+
 // locOf formats a source location "id:line" for an edge's Loc field.
 func locOf(id string, line int) string {
 	return fmt.Sprintf("%s:%d", id, line)

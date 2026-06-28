@@ -46,18 +46,45 @@ func build(cfgPath string) (*config.Config, *graph.Graph, error) {
 }
 
 // Run builds the graph, runs the configured assertions, writes the text report to w, and returns
-// whether every check passed. A configuration/discovery/extraction failure (as opposed to an
-// assertion finding) is returned as an error — the caller maps that to a distinct exit code.
+// whether every check passed. Equivalent to Render with the "text" format; kept as the simple entry.
 func Run(cfgPath string, w io.Writer) (bool, error) {
+	return Render(cfgPath, "text", w)
+}
+
+// Render builds the graph and emits it in the requested format, returning whether every check passed:
+//   - "text"    human pass/fail report (default)
+//   - "junit"   JUnit XML of the checks (CI)
+//   - "json"    the graph + check results as JSON
+//   - "mermaid" the graph as a Mermaid flowchart (visualization; always "passes")
+//
+// text/junit/json run the assertions and return their pass/fail; mermaid is a pure visualization and
+// returns true. An unknown format is an error.
+func Render(cfgPath, format string, w io.Writer) (bool, error) {
 	cfg, g, err := build(cfgPath)
 	if err != nil {
 		return false, err
+	}
+	if format == "mermaid" {
+		if err := report.Mermaid(w, g); err != nil {
+			return false, fmt.Errorf("report: %w", err)
+		}
+		return true, nil
 	}
 	results, err := assert.NewRegistry().Check(g, cfg.Assert)
 	if err != nil {
 		return false, fmt.Errorf("assert: %w", err)
 	}
-	if err := report.Text(w, results); err != nil {
+	switch format {
+	case "", "text":
+		err = report.Text(w, results)
+	case "junit":
+		err = report.JUnit(w, results)
+	case "json":
+		err = report.JSON(w, g, results)
+	default:
+		return false, fmt.Errorf("unknown format %q (want text|junit|json|mermaid)", format)
+	}
+	if err != nil {
 		return false, fmt.Errorf("report: %w", err)
 	}
 	return report.AllPassed(results), nil

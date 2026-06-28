@@ -3,8 +3,9 @@
 //
 // Usage:
 //
-//	docgraph -config docgraph.yml              # lint: run the configured checks
-//	docgraph -config docgraph.yml -explain N   # trace how node N is reached from consumers
+//	docgraph -config docgraph.yml                 # lint: run the configured checks (text report)
+//	docgraph -config docgraph.yml -format junit   # emit JUnit XML (CI) / json / mermaid
+//	docgraph -config docgraph.yml -explain N      # trace how node N is reached from consumers
 //
 // Exit codes: 0 = all checks passed, 1 = one or more checks failed, 2 = a configuration or runtime
 // error (the linter could not run). -explain always exits 0/2 (it reports, it does not gate).
@@ -21,6 +22,7 @@ import (
 func main() {
 	cfgPath := flag.String("config", "docgraph.yml", "path to the docgraph.yml config")
 	explain := flag.String("explain", "", "trace how the given node ID is reached from consumers, then exit")
+	format := flag.String("format", "text", "output format: text|junit|json|mermaid")
 	flag.Parse()
 
 	if *explain != "" {
@@ -31,7 +33,7 @@ func main() {
 		return
 	}
 
-	passed, err := app.Run(*cfgPath, os.Stdout)
+	passed, err := app.Render(*cfgPath, *format, os.Stdout)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "docgraph:", err)
 		os.Exit(2)

@@ -79,3 +79,21 @@ func TestExplainNoSuchNode(t *testing.T) {
 		t.Errorf("explain output should report no such node:\n%s", s)
 	}
 }
+
+func TestRenderFormats(t *testing.T) {
+	cfg := filepath.Join("testdata", "broken", "docgraph.yml")
+	for _, format := range []string{"text", "junit", "json", "mermaid"} {
+		t.Run(format, func(t *testing.T) {
+			var out strings.Builder
+			if _, err := Render(cfg, format, &out); err != nil {
+				t.Fatalf("Render(%s) error: %v", format, err)
+			}
+			if out.Len() == 0 {
+				t.Errorf("Render(%s) produced no output", format)
+			}
+		})
+	}
+	if _, err := Render(cfg, "bogus", &strings.Builder{}); err == nil {
+		t.Error("Render(bogus) = nil error, want unknown-format failure")
+	}
+}

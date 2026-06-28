@@ -33,6 +33,9 @@ type Config struct {
 type NodeSet struct {
 	// Glob selects the files in this set, relative to Root (doublestar syntax).
 	Glob string `yaml:"glob"`
+	// Exclude lists doublestar patterns to drop from the glob matches (e.g. "testdata/**",
+	// "vendor/**") — a real repo must keep fixtures/vendored docs out of its own graph.
+	Exclude []string `yaml:"exclude"`
 	// Frontmatter lists YAML frontmatter fields to parse off each member, if any.
 	Frontmatter []string `yaml:"frontmatter"`
 }

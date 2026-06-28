@@ -39,6 +39,7 @@ func NewRegistry() *Registry {
 	r.Register(markdownLink{})
 	r.Register(yamlPointer{})
 	r.Register(regexCite{})
+	r.Register(jsonPath{})
 	return r
 }
 

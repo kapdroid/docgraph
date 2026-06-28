@@ -57,13 +57,54 @@ func TestHasAndNode(t *testing.T) {
 	}
 }
 
-func TestAddNodeOverwrites(t *testing.T) {
+func TestAddNodeMergesMultiKind(t *testing.T) {
 	g := New()
 	g.AddNode(Node{ID: "x", Kind: "docs"})
 	g.AddNode(Node{ID: "x", Kind: "adrs", Frontmatter: map[string]string{"scope": "engine"}})
 	n, _ := g.Node("x")
-	if n.Kind != "adrs" || n.Frontmatter["scope"] != "engine" {
-		t.Errorf("re-AddNode did not overwrite: got %+v", n)
+	// merged: belongs to BOTH sets, frontmatter kept, primary Kind is lexicographically-first ("adrs")
+	if !g.IsKind("x", "docs") || !g.IsKind("x", "adrs") {
+		t.Errorf("x should be a member of both docs and adrs")
+	}
+	if n.Kind != "adrs" {
+		t.Errorf("primary Kind = %q, want lexicographically-first 'adrs'", n.Kind)
+	}
+	if n.Frontmatter["scope"] != "engine" {
+		t.Errorf("merged frontmatter lost: got %+v", n.Frontmatter)
+	}
+	if len(g.NodesOfKind("docs")) != 1 || len(g.NodesOfKind("adrs")) != 1 {
+		t.Errorf("NodesOfKind should return x for both sets")
+	}
+}
+
+func TestAddNodePrimaryKindDeterministic(t *testing.T) {
+	// order of AddNode must not change the primary Kind (lexicographically-first wins either way)
+	g1 := New()
+	g1.AddNode(Node{ID: "x", Kind: "zeta"})
+	g1.AddNode(Node{ID: "x", Kind: "alpha"})
+	g2 := New()
+	g2.AddNode(Node{ID: "x", Kind: "alpha"})
+	g2.AddNode(Node{ID: "x", Kind: "zeta"})
+	n1, _ := g1.Node("x")
+	n2, _ := g2.Node("x")
+	if n1.Kind != "alpha" || n2.Kind != "alpha" {
+		t.Errorf("primary Kind not deterministic: g1=%q g2=%q, want both 'alpha'", n1.Kind, n2.Kind)
+	}
+}
+
+func TestAddNodeMergeFillsPathAndSkipsEmptyKind(t *testing.T) {
+	g := New()
+	g.AddNode(Node{ID: "x", Kind: "docs"})                // no Path yet
+	g.AddNode(Node{ID: "x", Kind: "", Path: "real/x.md"}) // empty Kind must not register a "" set
+	n, _ := g.Node("x")
+	if n.Path != "real/x.md" {
+		t.Errorf("merge did not fill empty Path: got %q", n.Path)
+	}
+	if g.IsKind("x", "") {
+		t.Error("empty Kind should not create a membership entry")
+	}
+	if !g.IsKind("x", "docs") {
+		t.Error("original docs membership lost after empty-Kind re-add")
 	}
 }
 

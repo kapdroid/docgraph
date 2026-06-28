@@ -162,3 +162,27 @@ func TestDiscoverBadExcludePattern(t *testing.T) {
 		t.Fatal("Discover with a malformed exclude pattern = nil error, want failure")
 	}
 }
+
+func TestDiscoverOverlappingSets(t *testing.T) {
+	// a file matched by two overlapping globs must join BOTH sets (no clobber) — the bug that made a
+	// broad link-check pass vacuously (kap-49m).
+	cfg := &config.Config{
+		Root: "testdata/proj",
+		Nodes: map[string]config.NodeSet{
+			"all":  {Glob: "**/*.md"},   // catch-all
+			"docs": {Glob: "docs/*.md"}, // overlaps 'all' on docs/*.md
+		},
+	}
+	g, err := Discover(cfg)
+	if err != nil {
+		t.Fatalf("Discover: %v", err)
+	}
+	if !g.IsKind("docs/a.md", "all") || !g.IsKind("docs/a.md", "docs") {
+		t.Errorf("docs/a.md should be a member of BOTH 'all' and 'docs'")
+	}
+	// the catch-all sees every md file; docs sees only docs/*.md
+	if len(g.NodesOfKind("all")) <= len(g.NodesOfKind("docs")) {
+		t.Errorf("'all' (%d) should have more members than 'docs' (%d)",
+			len(g.NodesOfKind("all")), len(g.NodesOfKind("docs")))
+	}
+}

@@ -21,14 +21,13 @@ func (noOrphan) Type() string { return "no-orphan" }
 
 // Check returns a finding for each in-scope node with no inbound edges.
 func (noOrphan) Check(g *graph.Graph, rule config.Assertion) []Finding {
-	inScope := kindSet(rule.In)
 	var findings []Finding
 	for _, n := range g.Nodes() {
 		if n.Abstract {
 			continue // injected consumer/moment nodes (M3) are pure sources, never orphans
 		}
-		if len(inScope) > 0 && !inScope[n.Kind] {
-			continue
+		if len(rule.In) > 0 && !inAnyScope(g, n.ID, rule.In) {
+			continue // not a member of any in-scope set (membership, not just the primary Kind)
 		}
 		if len(g.Inbound(n.ID)) > 0 {
 			continue
@@ -42,15 +41,12 @@ func (noOrphan) Check(g *graph.Graph, rule config.Assertion) []Finding {
 	return findings
 }
 
-// kindSet turns a list of node-set kinds into a set for O(1) membership; empty list → empty set
-// (meaning "all kinds in scope").
-func kindSet(kinds []string) map[string]bool {
-	if len(kinds) == 0 {
-		return nil
-	}
-	s := make(map[string]bool, len(kinds))
+// inAnyScope reports whether the node id belongs to any of the given node-set kinds.
+func inAnyScope(g *graph.Graph, id string, kinds []string) bool {
 	for _, k := range kinds {
-		s[k] = true
+		if g.IsKind(id, k) {
+			return true
+		}
 	}
-	return s
+	return false
 }

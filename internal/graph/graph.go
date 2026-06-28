@@ -88,18 +88,19 @@ func (g *Graph) Nodes() []*Node {
 	return out
 }
 
-// Edges returns all edges in insertion order.
+// Edges returns all edges in insertion order. The slice is read-only — do not append to it (it
+// shares backing storage with the graph; docgraph builds-then-reads single-threaded).
 func (g *Graph) Edges() []Edge {
 	return g.edges
 }
 
-// Outbound returns the edges leaving the node with the given ID (nil if none).
+// Outbound returns the edges leaving the node with the given ID (nil if none). Read-only (see Edges).
 func (g *Graph) Outbound(id string) []Edge {
 	return g.out[id]
 }
 
 // Inbound returns the edges arriving at the given ID, including edges from nodes that point at an ID
-// with no node (so a dangling target still has discoverable referrers).
+// with no node (so a dangling target still has discoverable referrers). Read-only (see Edges).
 func (g *Graph) Inbound(id string) []Edge {
 	return g.in[id]
 }

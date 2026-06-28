@@ -168,13 +168,37 @@ func (c *Config) validate() error {
 			}
 		}
 	}
-	// Assert node-set references (In/From/To/Set) are validated by the per-assert packages that
-	// consume them (M2/M3 beads) — mirroring the per-extractor field validation above (KISS); here we
-	// only pin the assert vocabulary itself.
+	// Assert vocabulary + node-set references. A typo'd node-set in an assert would otherwise make the
+	// assertion vacuously pass (it iterates an empty set), so references are validated here against
+	// Nodes — the same place edge refs are validated. Per-assert-type, because the fields differ:
+	// reachable's `from` is the literal keyword "consumers" (not a node-set) and registered's
+	// `registry` is a node ID resolved at runtime, so neither is validated here.
 	for i, a := range c.Assert {
 		if !knownAssertTypes[a.Type] {
 			return fmt.Errorf("assert[%d]: unknown type %q", i, a.Type)
 		}
+		for _, ref := range assertNodeSetRefs(a) {
+			if _, ok := c.Nodes[ref]; !ok {
+				return fmt.Errorf("assert[%d] (%s): %q is not a defined node-set", i, a.Type, ref)
+			}
+		}
 	}
 	return nil
+}
+
+// assertNodeSetRefs returns the values of an assertion that must name a defined node-set, by type.
+// (reachable.From == "consumers" keyword and registered.Registry == runtime node ID are excluded.)
+func assertNodeSetRefs(a Assertion) []string {
+	switch a.Type {
+	case "cites":
+		return []string{a.From, a.To}
+	case "no-orphan", "consistent":
+		return a.In
+	case "registered":
+		return []string{a.From}
+	case "reachable":
+		return []string{a.Set}
+	default: // no-dangling, acyclic
+		return nil
+	}
 }

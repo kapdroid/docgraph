@@ -64,6 +64,7 @@ func TestLoadRejectsMalformed(t *testing.T) {
 		{"edge from undefined node-set", "bad_undefined_from.yml", "not a defined node-set"},
 		{"edge to undefined node-set", "bad_to_undefined.yml", "not a defined node-set"},
 		{"unknown assert type", "bad_unknown_assert.yml", "unknown type"},
+		{"assert references undefined node-set", "bad_assert_undefined_set.yml", "not a defined node-set"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -75,6 +76,14 @@ func TestLoadRejectsMalformed(t *testing.T) {
 				t.Errorf("Load(%s) error = %q, want it to contain %q", tc.file, err, tc.wantInErr)
 			}
 		})
+	}
+}
+
+func TestLoadReachableConsumersKeyword(t *testing.T) {
+	// reachable's `from: consumers` is a keyword, not a node-set, and must NOT be rejected by the
+	// assert node-set validation.
+	if _, err := Load(filepath.Join("testdata", "valid_reachable.yml")); err != nil {
+		t.Fatalf("Load(valid_reachable) rejected the consumers keyword: %v", err)
 	}
 }
 

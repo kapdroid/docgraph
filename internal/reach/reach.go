@@ -8,6 +8,8 @@
 package reach
 
 import (
+	"sort"
+
 	"github.com/kapdroid/docgraph/internal/config"
 	"github.com/kapdroid/docgraph/internal/graph"
 )
@@ -34,10 +36,19 @@ const (
 // moments. It is a no-op when no consumers are configured. Call it after extraction and before the
 // reachable assertion so the assert sees a graph where consumers are first-class entry nodes.
 func Materialize(cfg *config.Config, g *graph.Graph) {
+	if len(cfg.Consumers) == 0 {
+		return // moments are only meaningful as consumer `at` targets — nothing to inject
+	}
 	for _, m := range cfg.Moments {
 		g.AddNode(graph.Node{ID: MomentPrefix + m, Kind: MomentKind, Abstract: true})
 	}
-	for name, c := range cfg.Consumers {
+	names := make([]string, 0, len(cfg.Consumers))
+	for name := range cfg.Consumers {
+		names = append(names, name)
+	}
+	sort.Strings(names) // deterministic edge insertion order (cfg.Consumers is a map)
+	for _, name := range names {
+		c := cfg.Consumers[name]
 		cid := ConsumerPrefix + name
 		g.AddNode(graph.Node{ID: cid, Kind: ConsumerKind, Abstract: true})
 		for _, set := range c.Reaches {

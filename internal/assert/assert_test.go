@@ -73,6 +73,19 @@ func TestNoOrphan(t *testing.T) {
 	}
 }
 
+func TestNoOrphanSkipsAbstractNodes(t *testing.T) {
+	// injected consumer/moment nodes (M3) are pure sources with zero inbound — an unscoped no-orphan
+	// must NOT flag them as orphans.
+	g := graph.New()
+	g.AddNode(graph.Node{ID: "consumer:impl", Kind: "consumer", Abstract: true})
+	g.AddNode(graph.Node{ID: "moment:lane", Kind: "moment", Abstract: true})
+	g.AddNode(graph.Node{ID: "real-orphan.md", Kind: "docs"})
+	fs := noOrphan{}.Check(g, config.Assertion{Type: "no-orphan"}) // unscoped (all kinds)
+	if len(fs) != 1 || fs[0].Node != "real-orphan.md" {
+		t.Fatalf("no-orphan findings = %+v, want only real-orphan.md (abstract nodes exempt)", fs)
+	}
+}
+
 func TestRegistryCheck(t *testing.T) {
 	r := NewRegistry()
 	results, err := r.Check(testGraph(), []config.Assertion{

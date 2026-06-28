@@ -24,6 +24,9 @@ func (noOrphan) Check(g *graph.Graph, rule config.Assertion) []Finding {
 	inScope := kindSet(rule.In)
 	var findings []Finding
 	for _, n := range g.Nodes() {
+		if n.Abstract {
+			continue // injected consumer/moment nodes (M3) are pure sources, never orphans
+		}
 		if len(inScope) > 0 && !inScope[n.Kind] {
 			continue
 		}

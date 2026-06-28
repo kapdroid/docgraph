@@ -91,7 +91,9 @@ var inlineCodeRe = regexp.MustCompile("`[^`]*`")
 // intact (no closing delimiter to match).
 func stripInlineCode(line string) string {
 	return inlineCodeRe.ReplaceAllStringFunc(line, func(s string) string {
-		return strings.Repeat(" ", len(s)) // preserve column positions for stable Loc reporting
+		// equal-length blanks (not removal) keep surrounding bracket/paren columns, so a real link
+		// whose label itself contains inline code — [`code`](real.md) — still matches mdLinkRe.
+		return strings.Repeat(" ", len(s))
 	})
 }
 

@@ -153,6 +153,8 @@ func TestStripInlineCode(t *testing.T) {
 		{"span removed", "see `[x](y)` here", "see          here"},
 		{"no code untouched", "plain [a](b)", "plain [a](b)"},
 		{"unbalanced backtick kept", "trailing `oops", "trailing `oops"},
+		{"real link with inline-code label kept", "[`x`](y.md)", "[   ](y.md)"},
+		{"multiple spans", "`a` and `bb`", "    and     "},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

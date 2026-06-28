@@ -48,3 +48,34 @@ func TestRunConfigErrorIsError(t *testing.T) {
 		t.Fatal("Run(missing config) = nil error, want an error (distinct from a failed check)")
 	}
 }
+
+func TestExplainReachable(t *testing.T) {
+	var out strings.Builder
+	if err := Explain(filepath.Join("testdata", "reach", "docgraph.yml"), "docs/reachable.md", &out); err != nil {
+		t.Fatalf("Explain error: %v", err)
+	}
+	s := out.String()
+	if !strings.Contains(s, "is reachable") || !strings.Contains(s, "consumer:impl") || !strings.Contains(s, "docs/reachable.md") {
+		t.Errorf("explain output missing reachable path:\n%s", s)
+	}
+}
+
+func TestExplainUnreachable(t *testing.T) {
+	var out strings.Builder
+	if err := Explain(filepath.Join("testdata", "reach", "docgraph.yml"), "docs/lonely.md", &out); err != nil {
+		t.Fatalf("Explain error: %v", err)
+	}
+	if s := out.String(); !strings.Contains(s, "UNREACHABLE") {
+		t.Errorf("explain output should mark lonely.md unreachable:\n%s", s)
+	}
+}
+
+func TestExplainNoSuchNode(t *testing.T) {
+	var out strings.Builder
+	if err := Explain(filepath.Join("testdata", "reach", "docgraph.yml"), "docs/ghost.md", &out); err != nil {
+		t.Fatalf("Explain error: %v", err)
+	}
+	if s := out.String(); !strings.Contains(s, "no such node") {
+		t.Errorf("explain output should report no such node:\n%s", s)
+	}
+}

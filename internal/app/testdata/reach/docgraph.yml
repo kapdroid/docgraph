@@ -1,0 +1,11 @@
+root: .
+nodes:
+  stacks: { glob: "stacks/*/stack.yml" }
+  rules:  { glob: "docs/*.md" }
+moments: [lane]
+consumers:
+  impl: { reaches: [stacks], at: [lane] }
+edges:
+  - { type: yaml-pointer, from: stacks, key: rules, to: rules }
+assert:
+  - { type: reachable, set: rules, from: consumers }

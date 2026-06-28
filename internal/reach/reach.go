@@ -96,3 +96,49 @@ func ReachableFrom(g *graph.Graph, sources []string) map[string]bool {
 	}
 	return seen
 }
+
+// PathTo returns a shortest path (by edge count) from any source to target, or false if target is
+// unreachable. The returned slice starts at a source and ends at target. It is the trace behind
+// `--explain`: it shows HOW a reader reaches a node, not merely that it does.
+func PathTo(g *graph.Graph, sources []string, target string) ([]string, bool) {
+	parent := map[string]string{}
+	seen := map[string]bool{}
+	queue := make([]string, 0, len(sources))
+	for _, s := range sources {
+		if !seen[s] {
+			seen[s] = true
+			queue = append(queue, s)
+		}
+	}
+	for len(queue) > 0 {
+		id := queue[0]
+		queue = queue[1:]
+		if id == target {
+			return reconstruct(parent, target), true
+		}
+		for _, e := range g.Outbound(id) {
+			if seen[e.To] || !g.Has(e.To) {
+				continue
+			}
+			seen[e.To] = true
+			parent[e.To] = id
+			queue = append(queue, e.To)
+		}
+	}
+	return nil, false
+}
+
+// reconstruct walks parent pointers back from target to a source and returns the path source→target.
+func reconstruct(parent map[string]string, target string) []string {
+	var rev []string
+	for cur := target; cur != ""; cur = parent[cur] {
+		rev = append(rev, cur)
+		if _, ok := parent[cur]; !ok {
+			break // reached a source (no parent recorded)
+		}
+	}
+	for i, j := 0, len(rev)-1; i < j; i, j = i+1, j-1 {
+		rev[i], rev[j] = rev[j], rev[i]
+	}
+	return rev
+}

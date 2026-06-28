@@ -87,3 +87,24 @@ func TestReachableFromEmptySources(t *testing.T) {
 		t.Errorf("ReachableFrom(nil) = %v, want empty", got)
 	}
 }
+
+func TestPathTo(t *testing.T) {
+	g := buildGraph()
+	Materialize(consumerCfg(), g)
+	src := ConsumerIDs(g)
+
+	t.Run("reachable returns path", func(t *testing.T) {
+		path, ok := PathTo(g, src, "docs/rules.md")
+		if !ok {
+			t.Fatal("PathTo(docs/rules.md) = unreachable, want a path")
+		}
+		if path[0] != "consumer:impl" || path[len(path)-1] != "docs/rules.md" {
+			t.Errorf("path = %v, want consumer:impl → … → docs/rules.md", path)
+		}
+	})
+	t.Run("unreachable returns false", func(t *testing.T) {
+		if _, ok := PathTo(g, src, "docs/lonely.md"); ok {
+			t.Error("PathTo(docs/lonely.md) = reachable, want false")
+		}
+	})
+}

@@ -92,6 +92,22 @@ func TestAddNodePrimaryKindDeterministic(t *testing.T) {
 	}
 }
 
+func TestAddNodeMergeFillsPathAndSkipsEmptyKind(t *testing.T) {
+	g := New()
+	g.AddNode(Node{ID: "x", Kind: "docs"})                // no Path yet
+	g.AddNode(Node{ID: "x", Kind: "", Path: "real/x.md"}) // empty Kind must not register a "" set
+	n, _ := g.Node("x")
+	if n.Path != "real/x.md" {
+		t.Errorf("merge did not fill empty Path: got %q", n.Path)
+	}
+	if g.IsKind("x", "") {
+		t.Error("empty Kind should not create a membership entry")
+	}
+	if !g.IsKind("x", "docs") {
+		t.Error("original docs membership lost after empty-Kind re-add")
+	}
+}
+
 func TestNodesSortedAndOfKind(t *testing.T) {
 	g := New()
 	g.AddNode(Node{ID: "z", Kind: "docs"})

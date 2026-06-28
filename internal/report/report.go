@@ -35,9 +35,10 @@ func (e *errWriter) printf(format string, a ...any) {
 }
 
 // Text writes a human-readable pass/fail report: one line per check, then the findings of any failed
-// check, and a final summary line. It returns the number of findings written and the first write
-// error encountered (nil on success).
-func Text(w io.Writer, results []assert.Result) (int, error) {
+// check, and a final summary line. It returns the first write error encountered (nil on success).
+// The signature mirrors the M3 formatters (JSON/JUnit/mermaid) — func(io.Writer, data) error — so
+// the CLI can dispatch on format uniformly.
+func Text(w io.Writer, results []assert.Result) error {
 	ew := &errWriter{w: w}
 	total := 0
 	for _, r := range results {
@@ -57,5 +58,5 @@ func Text(w io.Writer, results []assert.Result) (int, error) {
 	} else {
 		ew.printf("\nFAILED — %d finding(s) across %d check(s)\n", total, checks)
 	}
-	return total, ew.err
+	return ew.err
 }

@@ -35,14 +35,10 @@ func TestTextReport(t *testing.T) {
 		{Type: "no-orphan"},
 	}
 	var b strings.Builder
-	n, err := Text(&b, results)
-	if err != nil {
+	if err := Text(&b, results); err != nil {
 		t.Fatalf("Text returned error: %v", err)
 	}
 	s := b.String()
-	if n != 1 {
-		t.Errorf("findings written = %d, want 1", n)
-	}
 	for _, want := range []string{"FAIL  no-dangling (1)", "a references b", "PASS  no-orphan", "FAILED — 1 finding"} {
 		if !strings.Contains(s, want) {
 			t.Errorf("report missing %q:\n%s", want, s)
@@ -52,7 +48,7 @@ func TestTextReport(t *testing.T) {
 
 func TestTextReportClean(t *testing.T) {
 	var b strings.Builder
-	if _, err := Text(&b, []assert.Result{{Type: "no-dangling"}, {Type: "no-orphan"}}); err != nil {
+	if err := Text(&b, []assert.Result{{Type: "no-dangling"}, {Type: "no-orphan"}}); err != nil {
 		t.Fatalf("Text returned error: %v", err)
 	}
 	if !strings.Contains(b.String(), "ok — 2 check(s) passed") {

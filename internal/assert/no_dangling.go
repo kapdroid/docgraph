@@ -23,9 +23,10 @@ func (noDangling) Check(g *graph.Graph, _ config.Assertion) []Finding {
 		}
 		edge := e
 		findings = append(findings, Finding{
-			Node:    e.From,
-			Edge:    &edge,
-			Message: fmt.Sprintf("%s references %q which does not exist (at %s)", e.From, e.To, e.Loc),
+			Severity: SeverityError,
+			Node:     e.From,
+			Edge:     &edge,
+			Message:  fmt.Sprintf("%s references %q which does not exist (at %s)", e.From, e.To, e.Loc),
 		})
 	}
 	return findings

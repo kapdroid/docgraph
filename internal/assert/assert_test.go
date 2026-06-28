@@ -42,6 +42,9 @@ func TestNoDangling(t *testing.T) {
 	if fs[0].Edge == nil || fs[0].Edge.To != "ghost" {
 		t.Errorf("finding = %+v, want the leaf→ghost edge", fs[0])
 	}
+	if fs[0].Severity != SeverityError {
+		t.Errorf("finding severity = %q, want %q", fs[0].Severity, SeverityError)
+	}
 }
 
 func TestNoOrphan(t *testing.T) {

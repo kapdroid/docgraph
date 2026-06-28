@@ -31,8 +31,9 @@ func (noOrphan) Check(g *graph.Graph, rule config.Assertion) []Finding {
 			continue
 		}
 		findings = append(findings, Finding{
-			Node:    n.ID,
-			Message: fmt.Sprintf("%s (%s) is an orphan — nothing references it", n.ID, n.Kind),
+			Severity: SeverityError,
+			Node:     n.ID,
+			Message:  fmt.Sprintf("%s (%s) is an orphan — nothing references it", n.ID, n.Kind),
 		})
 	}
 	return findings

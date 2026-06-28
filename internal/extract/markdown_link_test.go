@@ -20,7 +20,7 @@ func docsGraph() *graph.Graph {
 func TestMarkdownLinkExtract(t *testing.T) {
 	g := docsGraph()
 	r := NewRegistry()
-	if err := r.Extract("testdata", g, []config.EdgeRule{{Type: "markdown-link", From: "docs"}}); err != nil {
+	if err := r.Extract(g, []config.EdgeRule{{Type: "markdown-link", From: "docs"}}); err != nil {
 		t.Fatalf("Extract returned error: %v", err)
 	}
 
@@ -97,8 +97,19 @@ func TestResolveRef(t *testing.T) {
 func TestExtractUnknownType(t *testing.T) {
 	g := docsGraph()
 	r := NewRegistry()
-	err := r.Extract("testdata", g, []config.EdgeRule{{Type: "telepathy", From: "docs"}})
+	err := r.Extract(g, []config.EdgeRule{{Type: "telepathy", From: "docs"}})
 	if err == nil {
 		t.Fatal("Extract with unknown type = nil error, want failure")
+	}
+}
+
+func TestExtractOwnFileReadFails(t *testing.T) {
+	// the seam's error contract: a read failure on the node's OWN file is an error (vs an unresolved
+	// reference, which is a dangling edge, not an error). M2 extractors must honor the same contract.
+	g := graph.New()
+	g.AddNode(graph.Node{ID: "docs/gone.md", Kind: "docs", Path: "testdata/docs/gone.md"})
+	r := NewRegistry()
+	if err := r.Extract(g, []config.EdgeRule{{Type: "markdown-link", From: "docs"}}); err == nil {
+		t.Fatal("Extract over a node with a missing file = nil error, want failure")
 	}
 }

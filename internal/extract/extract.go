@@ -18,10 +18,12 @@ import (
 type Extractor interface {
 	// Type is the docgraph.yml edge `type` this extractor handles.
 	Type() string
-	// Extract emits the edges for one node under rule. root is the config root for path resolution.
-	// A read/parse failure on the node's own file is returned; an unresolved reference is NOT an
-	// error — it becomes an edge to a missing node (reported by no-dangling, not here).
-	Extract(root string, n *graph.Node, rule config.EdgeRule) ([]graph.Edge, error)
+	// Extract emits the edges for one node under rule. The node carries everything needed: n.Path
+	// (root-inclusive, for reading the file) and n.ID (root-relative, the resolution base) — so no
+	// separate root is threaded through. A read/parse failure on the node's own file is returned; an
+	// unresolved reference is NOT an error — it becomes an edge to a missing node (reported by
+	// no-dangling, not here).
+	Extract(n *graph.Node, rule config.EdgeRule) ([]graph.Edge, error)
 }
 
 // Registry holds the extractors keyed by edge type. Construct it with NewRegistry; it carries no
@@ -52,14 +54,14 @@ func (r *Registry) Get(t string) (Extractor, bool) {
 // Extract runs every edge rule over the nodes of its From set, adding the produced edges to g. It
 // fails fast if a rule names an edge type with no registered extractor (a config the loader allowed
 // but this build cannot execute) or if reading a node's file fails.
-func (r *Registry) Extract(root string, g *graph.Graph, edges []config.EdgeRule) error {
+func (r *Registry) Extract(g *graph.Graph, edges []config.EdgeRule) error {
 	for i, rule := range edges {
 		ex, ok := r.Get(rule.Type)
 		if !ok {
 			return fmt.Errorf("extract: edge[%d]: no extractor registered for type %q", i, rule.Type)
 		}
 		for _, n := range g.NodesOfKind(rule.From) {
-			es, err := ex.Extract(root, n, rule)
+			es, err := ex.Extract(n, rule)
 			if err != nil {
 				return fmt.Errorf("extract: %s on %s: %w", rule.Type, n.ID, err)
 			}

@@ -2,6 +2,7 @@ package extract
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"regexp"
 	"strings"
@@ -17,6 +18,13 @@ var mdLinkRe = regexp.MustCompile(`\[[^\]]*\]\(([^)]+)\)`)
 // markdownLink extracts intra-repo Markdown links as edges. External links (scheme://, mailto:, tel:)
 // and pure in-document anchors (#section) are skipped — only references that target another file in
 // the graph become edges.
+//
+// Scope (M1 link layer): this is a deliberately simple inline-link regex, not a full Markdown parse.
+// Image embeds ![alt](path) are treated as links (the [alt](path) substring matches) — intentional,
+// since an image is also a file reference docgraph should reach. Known limits, acceptable for the
+// link layer: links inside fenced/inline code blocks still match, reference-style [text][ref] links
+// are not followed, and a nested-bracket label truncates at the first ']'. Upgrade to a real parser
+// (goldmark) only if fidelity demands it (a later bead, not M1).
 type markdownLink struct{}
 
 // Type returns the edge type this extractor handles.
@@ -24,10 +32,10 @@ func (markdownLink) Type() string { return "markdown-link" }
 
 // Extract reads n's file and emits one edge per intra-repo Markdown link, resolving the link target
 // relative to n's directory into a root-relative node ID.
-func (markdownLink) Extract(_ string, n *graph.Node, _ config.EdgeRule) ([]graph.Edge, error) {
+func (markdownLink) Extract(n *graph.Node, _ config.EdgeRule) ([]graph.Edge, error) {
 	f, err := os.Open(n.Path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open %s: %w", n.Path, err)
 	}
 	defer f.Close() //nolint:errcheck // read-only file, close error is not actionable
 
@@ -50,7 +58,7 @@ func (markdownLink) Extract(_ string, n *graph.Node, _ config.EdgeRule) ([]graph
 		}
 	}
 	if err := sc.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("scanning %s: %w", n.Path, err)
 	}
 	return edges, nil
 }
